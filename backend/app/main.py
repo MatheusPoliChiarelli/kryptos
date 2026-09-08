@@ -1,4 +1,5 @@
 from __future__ import annotations
+from app.routers import credentials, vault
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -20,6 +21,7 @@ app.add_middleware(
 )
 
 app.include_router(vault.router)
+app.include_router(credentials.router)
 
 
 @app.get("/health", tags=["system"])

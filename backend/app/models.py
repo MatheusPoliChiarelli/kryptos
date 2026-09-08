@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from sqlalchemy import DateTime, Integer, LargeBinary, String, Text, func
+from sqlalchemy import DateTime, Integer, LargeBinary, String, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db import Base
@@ -32,9 +32,10 @@ class Credential(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
 
     title: Mapped[str] = mapped_column(String(120), nullable=False, index=True)
-    username: Mapped[str] = mapped_column(String(255), nullable=False)
-    url: Mapped[str | None] = mapped_column(String(500), nullable=True)
     category: Mapped[str | None] = mapped_column(String(60), nullable=True, index=True)
+
+    username_nonce: Mapped[bytes] = mapped_column(LargeBinary, nullable=False)
+    username_ciphertext: Mapped[bytes] = mapped_column(LargeBinary, nullable=False)
 
     password_nonce: Mapped[bytes] = mapped_column(LargeBinary, nullable=False)
     password_ciphertext: Mapped[bytes] = mapped_column(LargeBinary, nullable=False)
@@ -51,3 +52,7 @@ class Credential(Base):
         onupdate=func.now(),
         nullable=False,
     )
+
+    @property
+    def has_notes(self) -> bool:
+        return self.notes_ciphertext is not None
