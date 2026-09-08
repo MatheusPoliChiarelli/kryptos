@@ -1,0 +1,114 @@
+import type {
+  Credential,
+  CredentialInput,
+  CredentialSecret,
+  UnlockResponse,
+  VaultStatus,
+} from "./types";
+
+const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:8000";
+const TOKEN_KEY = "kryptos_token";
+
+export class ApiError extends Error {
+  status: number;
+
+  constructor(status: number, message: string) {
+    super(message);
+    this.status = status;
+    this.name = "ApiError";
+  }
+}
+
+export function getToken(): string | null {
+  if (typeof window === "undefined") return null;
+  return window.sessionStorage.getItem(TOKEN_KEY);
+}
+
+export function setToken(token: string): void {
+  window.sessionStorage.setItem(TOKEN_KEY, token);
+}
+
+export function clearToken(): void {
+  window.sessionStorage.removeItem(TOKEN_KEY);
+}
+
+async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
+  const headers = new Headers(init.headers);
+  headers.set("Content-Type", "application/json");
+
+  const token = getToken();
+  if (token) {
+    headers.set("X-Vault-Token", token);
+  }
+
+  let response: Response;
+
+  try {
+    response = await fetch(`${BASE_URL}${path}`, { ...init, headers });
+  } catch {
+    throw new ApiError(0, "Não foi possível conectar ao servidor");
+  }
+
+  if (response.status === 401) {
+    clearToken();
+    throw new ApiError(401, "Cofre trancado ou sessão expirada");
+  }
+
+  if (!response.ok) {
+    let detail = "Ocorreu um erro inesperado";
+    try {
+      const body = await response.json();
+      if (typeof body?.detail === "string") detail = body.detail;
+    } catch {
+      // resposta sem corpo JSON
+    }
+    throw new ApiError(response.status, detail);
+  }
+
+  if (response.status === 204) {
+    return undefined as T;
+  }
+
+  return (await response.json()) as T;
+}
+
+export const api = {
+  getStatus: () => request<VaultStatus>("/vault/status"),
+
+  initVault: (masterPassword: string) =>
+    request<{ message: string }>("/vault/init", {
+      method: "POST",
+      body: JSON.stringify({ master_password: masterPassword }),
+    }),
+
+  unlock: (masterPassword: string) =>
+    request<UnlockResponse>("/vault/unlock", {
+      method: "POST",
+      body: JSON.stringify({ master_password: masterPassword }),
+    }),
+
+  lock: () => request<{ message: string }>("/vault/lock", { method: "POST" }),
+
+  listCredentials: (search?: string) => {
+    const query = search ? `?search=${encodeURIComponent(search)}` : "";
+    return request<Credential[]>(`/credentials${query}`);
+  },
+
+  createCredential: (data: CredentialInput) =>
+    request<Credential>("/credentials", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+
+  updateCredential: (id: number, data: Partial<CredentialInput>) =>
+    request<Credential>(`/credentials/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    }),
+
+  revealCredential: (id: number) =>
+    request<CredentialSecret>(`/credentials/${id}/reveal`),
+
+  deleteCredential: (id: number) =>
+    request<void>(`/credentials/${id}`, { method: "DELETE" }),
+};
