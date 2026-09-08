@@ -3,6 +3,7 @@
 import { Loader2 } from "lucide-react";
 
 import { LockScreen } from "@/components/LockScreen";
+import { VaultView } from "@/components/VaultView";
 import { useVault } from "@/lib/useVault";
 
 export default function Home() {
@@ -26,17 +27,5 @@ export default function Home() {
     );
   }
 
-  return (
-    <main className="flex min-h-screen items-center justify-center">
-      <div className="text-center">
-        <p className="text-sm text-[var(--text-muted)]">Cofre destrancado</p>
-        <button
-          onClick={() => void lock()}
-          className="mt-4 text-sm text-[var(--accent)] hover:underline"
-        >
-          Trancar
-        </button>
-      </div>
-    </main>
-  );
+  return <VaultView onLock={() => void lock()} />;
 }
