@@ -165,7 +165,7 @@ def verify_gesture(payload: VerifyGestureIn) -> UnlockOut:
     if streak < REQUIRED_OK_FRAMES:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Gesto não reconhecido, mantenha o sinal de OK parado",
+            detail="Verificação não reconhecida",
         )
 
     key = vault_session.consume_challenge(payload.challenge_id)
