@@ -60,3 +60,28 @@ class CredentialSecretOut(BaseModel):
     username: str
     password: str
     notes: str | None = None
+
+
+class UnlockPendingOut(BaseModel):
+    status: str = "biometrics_required"
+    challenge_id: str
+    face_enrolled: bool
+
+
+class VerifyFaceIn(BaseModel):
+    challenge_id: str
+    image: str = Field(min_length=1)
+
+
+class VerifyGestureIn(BaseModel):
+    challenge_id: str
+    frames: list[str] = Field(min_length=1, max_length=60)
+
+
+class EnrollFaceIn(BaseModel):
+    images: list[str] = Field(min_length=3, max_length=5)
+
+
+class BiometricStatusOut(BaseModel):
+    face_enrolled: bool
+    sample_count: int

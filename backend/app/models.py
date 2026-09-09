@@ -56,3 +56,17 @@ class Credential(Base):
     @property
     def has_notes(self) -> bool:
         return self.notes_ciphertext is not None
+
+
+class BiometricProfile(Base):
+    __tablename__ = "biometric_profile"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+
+    embeddings_nonce: Mapped[bytes] = mapped_column(LargeBinary, nullable=False)
+    embeddings_ciphertext: Mapped[bytes] = mapped_column(LargeBinary, nullable=False)
+    sample_count: Mapped[int] = mapped_column(Integer, nullable=False)
+
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )

@@ -1,15 +1,28 @@
 from __future__ import annotations
-from app.routers import credentials, vault
+
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.routers import vault
+from app.biometrics import warm_up
+from app.routers import biometrics, credentials, vault
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    try:
+        warm_up()
+    except Exception as exc:
+        print(f"Aviso: modelos biometricos nao carregados ({exc})")
+    yield
+
 
 app = FastAPI(
     title="Kryptos",
     description="Gerenciador de senhas local com criptografia de ponta a ponta",
     version="0.1.0",
+    lifespan=lifespan,
 )
 
 app.add_middleware(
@@ -22,6 +35,7 @@ app.add_middleware(
 
 app.include_router(vault.router)
 app.include_router(credentials.router)
+app.include_router(biometrics.router)
 
 
 @app.get("/health", tags=["system"])

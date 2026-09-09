@@ -22,6 +22,16 @@ from app.schemas import (
 )
 from app.session import vault_session
 
+from app.models import BiometricProfile, VaultMeta
+from app.schemas import (
+    InitVaultIn,
+    MessageOut,
+    UnlockIn,
+    UnlockOut,
+    UnlockPendingOut,
+    VaultStatusOut,
+)
+
 router = APIRouter(prefix="/vault", tags=["vault"])
 
 
@@ -67,8 +77,8 @@ def init_vault(payload: InitVaultIn, db: Session = Depends(get_db)) -> MessageOu
     return MessageOut(message="Cofre criado com sucesso")
 
 
-@router.post("/unlock", response_model=UnlockOut)
-def unlock_vault(payload: UnlockIn, db: Session = Depends(get_db)) -> UnlockOut:
+@router.post("/unlock")
+def unlock_vault(payload: UnlockIn, db: Session = Depends(get_db)):
     meta = get_meta(db)
     if meta is None:
         raise HTTPException(
@@ -89,11 +99,15 @@ def unlock_vault(payload: UnlockIn, db: Session = Depends(get_db)) -> UnlockOut:
             detail="Senha mestra incorreta",
         )
 
-    token = vault_session.unlock(key)
-    _, expires_at = vault_session.status()
+    profile = db.scalars(select(BiometricProfile).limit(1)).first()
 
-    return UnlockOut(token=token, expires_at=expires_at)
+    if profile is None:
+        token = vault_session.unlock(key)
+        _, expires_at = vault_session.status()
+        return UnlockOut(token=token, expires_at=expires_at)
 
+    challenge_id = vault_session.create_challenge(key)
+    return UnlockPendingOut(challenge_id=challenge_id, face_enrolled=True)
 
 @router.post("/lock", response_model=MessageOut)
 def lock_vault() -> MessageOut:
