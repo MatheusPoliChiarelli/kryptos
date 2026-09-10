@@ -68,3 +68,261 @@ button:focus-visible {
   border-radius: 5px;
   border: 3px solid var(--bg);
 }
+
+@keyframes k-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes k-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes k-scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes k-scan {
+  0% {
+    transform: translateY(-120%);
+    opacity: 0;
+  }
+  40% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(320%);
+    opacity: 0;
+  }
+}
+
+@keyframes k-halo {
+  0%,
+  100% {
+    opacity: 0.25;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.55;
+    transform: scale(1.12);
+  }
+}
+
+@keyframes k-ring {
+  0% {
+    opacity: 0.5;
+    transform: scale(0.9);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.9);
+  }
+}
+
+@keyframes k-drift {
+  0% {
+    background-position: 0 0;
+  }
+  100% {
+    background-position: 0 -56px;
+  }
+}
+
+@keyframes k-sweep {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(200%);
+  }
+}
+
+@keyframes k-countdown {
+  from {
+    transform: scaleX(1);
+  }
+  to {
+    transform: scaleX(0);
+  }
+}
+
+.k-fade-up {
+  animation: k-fade-up 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.k-fade-in {
+  animation: k-fade-in 0.4s ease both;
+}
+
+.k-scale-in {
+  animation: k-scale-in 0.28s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.k-grid-bg {
+  background-image:
+    linear-gradient(var(--border) 1px, transparent 1px),
+    linear-gradient(90deg, var(--border) 1px, transparent 1px);
+  background-size: 56px 56px;
+  animation: k-drift 22s linear infinite;
+  mask-image: radial-gradient(circle at 50% 45%, black, transparent 68%);
+  -webkit-mask-image: radial-gradient(circle at 50% 45%, black, transparent 68%);
+  opacity: 0.4;
+}
+
+.k-halo {
+  animation: k-halo 4s ease-in-out infinite;
+}
+
+.k-ring {
+  animation: k-ring 2.8s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+}
+
+.k-scan {
+  animation: k-scan 2.6s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+}
+
+.k-sweep::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(212, 162, 76, 0.07),
+    transparent
+  );
+  animation: k-sweep 1.4s ease-in-out infinite;
+}
+
+.k-countdown {
+  transform-origin: left;
+  animation: k-countdown linear forwards;
+}
+
+.k-mono {
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+}
+
+
+@keyframes k-shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  15% {
+    transform: translateX(-9px);
+  }
+  30% {
+    transform: translateX(8px);
+  }
+  45% {
+    transform: translateX(-6px);
+  }
+  60% {
+    transform: translateX(4px);
+  }
+  80% {
+    transform: translateX(-2px);
+  }
+}
+
+@keyframes k-error-glow {
+  0% {
+    box-shadow: 0 0 0 0 rgba(212, 97, 76, 0.45);
+  }
+  100% {
+    box-shadow: 0 0 0 18px rgba(212, 97, 76, 0);
+  }
+}
+
+@keyframes k-check-draw {
+  from {
+    stroke-dashoffset: 32;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes k-circle-draw {
+  from {
+    stroke-dashoffset: 170;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes k-burst {
+  0% {
+    opacity: 0.6;
+    transform: scale(0.6);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(2.4);
+  }
+}
+
+@keyframes k-curtain {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.k-shake {
+  animation: k-shake 0.45s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+}
+
+.k-error-glow {
+  animation: k-error-glow 0.7s ease-out both;
+}
+
+.k-check-draw {
+  stroke-dasharray: 32;
+  animation: k-check-draw 0.4s 0.25s cubic-bezier(0.65, 0, 0.35, 1) both;
+}
+
+.k-circle-draw {
+  stroke-dasharray: 170;
+  animation: k-circle-draw 0.55s cubic-bezier(0.65, 0, 0.35, 1) both;
+}
+
+.k-burst {
+  animation: k-burst 1s 0.3s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.k-curtain {
+  animation: k-curtain 0.3s ease both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

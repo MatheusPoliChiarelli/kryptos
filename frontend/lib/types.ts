@@ -32,3 +32,16 @@ export type CredentialInput = {
   category?: string | null;
   notes?: string | null;
 };
+
+
+export type PendingUnlock = {
+  status: "biometrics_required";
+  challenge_id: string;
+  face_enrolled: boolean;
+};
+
+export type BiometricStatus = {
+  face_enrolled: boolean;
+  sample_count: number;
+};
+

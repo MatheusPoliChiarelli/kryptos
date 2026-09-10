@@ -1,13 +1,32 @@
 "use client";
 
 import { Loader2 } from "lucide-react";
+import { useState } from "react";
 
+import { BiometricGate } from "@/components/BiometricGate";
 import { LockScreen } from "@/components/LockScreen";
 import { VaultView } from "@/components/VaultView";
 import { useVault } from "@/lib/useVault";
 
 export default function Home() {
-  const { loading, initialized, unlocked, unlock, initVault, lock } = useVault();
+  const {
+    loading,
+    initialized,
+    unlocked,
+    unlock,
+    initVault,
+    finishBiometrics,
+    lock,
+  } = useVault();
+
+  const [challengeId, setChallengeId] = useState<string | null>(null);
+
+  async function handleUnlock(masterPassword: string) {
+    const result = await unlock(masterPassword);
+    if (result.kind === "biometrics") {
+      setChallengeId(result.challengeId);
+    }
+  }
 
   if (loading) {
     return (
@@ -17,11 +36,24 @@ export default function Home() {
     );
   }
 
+  if (challengeId && !unlocked) {
+    return (
+      <BiometricGate
+        challengeId={challengeId}
+        onComplete={(token) => {
+          finishBiometrics(token);
+          setChallengeId(null);
+        }}
+        onCancel={() => setChallengeId(null)}
+      />
+    );
+  }
+
   if (!unlocked) {
     return (
       <LockScreen
         initialized={initialized}
-        onUnlock={unlock}
+        onUnlock={handleUnlock}
         onInit={initVault}
       />
     );

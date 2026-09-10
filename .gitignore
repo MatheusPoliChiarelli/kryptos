@@ -21,3 +21,12 @@ Thumbs.db
 # Editores
 .vscode/
 .idea/
+
+
+# Scripts de teste
+backend/scratch_*.py
+
+# Modelos do InsightFace
+**/.insightface/
+
+backend/hand_landmarker.task

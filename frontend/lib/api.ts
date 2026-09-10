@@ -1,7 +1,9 @@
 import type {
+  BiometricStatus,
   Credential,
   CredentialInput,
   CredentialSecret,
+  PendingUnlock,
   UnlockResponse,
   VaultStatus,
 } from "./types";
@@ -82,17 +84,44 @@ export const api = {
     }),
 
   unlock: (masterPassword: string) =>
-    request<UnlockResponse>("/vault/unlock", {
+    request<UnlockResponse | PendingUnlock>("/vault/unlock", {
       method: "POST",
       body: JSON.stringify({ master_password: masterPassword }),
     }),
 
   lock: () => request<{ message: string }>("/vault/lock", { method: "POST" }),
 
-  listCredentials: (search?: string) => {
-    const query = search ? `?search=${encodeURIComponent(search)}` : "";
-    return request<Credential[]>(`/credentials${query}`);
+  getBiometricStatus: () => request<BiometricStatus>("/biometrics/status"),
+
+  enrollFace: (images: string[]) =>
+    request<{ message: string }>("/biometrics/enroll-face", {
+      method: "POST",
+      body: JSON.stringify({ images }),
+    }),
+
+  deleteFace: () => request<void>("/biometrics/face", { method: "DELETE" }),
+
+  verifyFace: (challengeId: string, image: string) =>
+    request<{ message: string }>("/biometrics/verify-face", {
+      method: "POST",
+      body: JSON.stringify({ challenge_id: challengeId, image }),
+    }),
+
+  verifyGesture: (challengeId: string, frames: string[]) =>
+    request<UnlockResponse>("/biometrics/verify-gesture", {
+      method: "POST",
+      body: JSON.stringify({ challenge_id: challengeId, frames }),
+    }),
+
+  listCredentials: (params?: { search?: string; category?: string }) => {
+    const query = new URLSearchParams();
+    if (params?.search) query.set("search", params.search);
+    if (params?.category) query.set("category", params.category);
+    const suffix = query.toString() ? `?${query.toString()}` : "";
+    return request<Credential[]>(`/credentials${suffix}`);
   },
+
+  listCategories: () => request<string[]>("/credentials/categories"),
 
   createCredential: (data: CredentialInput) =>
     request<Credential>("/credentials", {
