@@ -5,8 +5,11 @@ import { useState } from "react";
 
 import { BiometricGate } from "@/components/BiometricGate";
 import { LockScreen } from "@/components/LockScreen";
+import { VaultReveal } from "@/components/VaultReveal";
 import { VaultView } from "@/components/VaultView";
 import { useVault } from "@/lib/useVault";
+
+const REVEAL_MS = 2600;
 
 export default function Home() {
   const {
@@ -20,6 +23,7 @@ export default function Home() {
   } = useVault();
 
   const [challengeId, setChallengeId] = useState<string | null>(null);
+  const [revealing, setRevealing] = useState(false);
 
   async function handleUnlock(masterPassword: string) {
     const result = await unlock(masterPassword);
@@ -43,6 +47,8 @@ export default function Home() {
         onComplete={(token) => {
           finishBiometrics(token);
           setChallengeId(null);
+          setRevealing(true);
+          setTimeout(() => setRevealing(false), REVEAL_MS);
         }}
         onCancel={() => setChallengeId(null)}
       />
@@ -59,5 +65,10 @@ export default function Home() {
     );
   }
 
-  return <VaultView onLock={() => void lock()} />;
+  return (
+    <>
+      <VaultView onLock={() => void lock()} />
+      {revealing && <VaultReveal />}
+    </>
+  );
 }

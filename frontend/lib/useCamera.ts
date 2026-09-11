@@ -47,6 +47,15 @@ export function useCamera() {
     };
   }, []);
 
+  const attach = useCallback((node: HTMLVideoElement | null) => {
+    videoRef.current = node;
+
+    if (node && streamRef.current && node.srcObject !== streamRef.current) {
+      node.srcObject = streamRef.current;
+      void node.play().catch(() => {});
+    }
+  }, []);
+
   const capture = useCallback((): string | null => {
     const video = videoRef.current;
     if (!video || video.videoWidth === 0) return null;
@@ -62,5 +71,5 @@ export function useCamera() {
     return canvas.toDataURL("image/jpeg", 0.8);
   }, []);
 
-  return { videoRef, ready, error, capture };
+  return { videoRef, attach, ready, error, capture };
 }

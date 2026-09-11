@@ -70,3 +70,22 @@ class BiometricProfile(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
+
+
+class GestureProfile(Base):
+    __tablename__ = "gesture_profile"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+
+    gesture_nonce: Mapped[bytes] = mapped_column(LargeBinary, nullable=False)
+    gesture_ciphertext: Mapped[bytes] = mapped_column(LargeBinary, nullable=False)
+
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        onupdate=func.now(),
+        nullable=False,
+    )

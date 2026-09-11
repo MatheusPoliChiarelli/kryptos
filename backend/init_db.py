@@ -1,5 +1,10 @@
 from app.db import Base, engine
-from app.models import Credential, VaultMeta  # noqa: F401
+from app.models import (  # noqa: F401
+    BiometricProfile,
+    Credential,
+    GestureProfile,
+    VaultMeta,
+)
 
 
 def main() -> None:

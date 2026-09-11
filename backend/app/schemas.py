@@ -85,3 +85,23 @@ class EnrollFaceIn(BaseModel):
 class BiometricStatusOut(BaseModel):
     face_enrolled: bool
     sample_count: int
+
+
+class ChangeMasterPasswordIn(BaseModel):
+    current_password: str = Field(min_length=1, max_length=256)
+    new_password: str = Field(min_length=12, max_length=256)
+
+
+class GestureStatusOut(BaseModel):
+    gesture_enrolled: bool
+
+
+class EnrollGestureIn(BaseModel):
+    gesture_id: str = Field(min_length=1, max_length=32)
+    frames: list[str] = Field(min_length=1, max_length=60)
+
+
+class SecurityStatusOut(BaseModel):
+    face_enrolled: bool
+    sample_count: int
+    gesture_enrolled: bool

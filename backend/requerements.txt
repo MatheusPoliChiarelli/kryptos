@@ -1,0 +1,13 @@
+fastapi
+uvicorn[standard]
+sqlalchemy
+psycopg[binary]
+argon2-cffi
+cryptography
+pydantic-settings
+python-dotenv
+insightface
+onnxruntime
+opencv-python
+mediapipe
+numpy

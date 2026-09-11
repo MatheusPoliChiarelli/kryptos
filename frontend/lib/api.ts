@@ -4,6 +4,7 @@ import type {
   CredentialInput,
   CredentialSecret,
   PendingUnlock,
+  SecurityStatus,
   UnlockResponse,
   VaultStatus,
 } from "./types";
@@ -91,7 +92,18 @@ export const api = {
 
   lock: () => request<{ message: string }>("/vault/lock", { method: "POST" }),
 
+  changeMasterPassword: (currentPassword: string, newPassword: string) =>
+    request<{ message: string }>("/vault/change-password", {
+      method: "POST",
+      body: JSON.stringify({
+        current_password: currentPassword,
+        new_password: newPassword,
+      }),
+    }),
+
   getBiometricStatus: () => request<BiometricStatus>("/biometrics/status"),
+
+  getSecurityStatus: () => request<SecurityStatus>("/biometrics/security"),
 
   enrollFace: (images: string[]) =>
     request<{ message: string }>("/biometrics/enroll-face", {
@@ -100,6 +112,14 @@ export const api = {
     }),
 
   deleteFace: () => request<void>("/biometrics/face", { method: "DELETE" }),
+
+  enrollGesture: (gestureId: string, frames: string[]) =>
+    request<{ message: string }>("/biometrics/enroll-gesture", {
+      method: "POST",
+      body: JSON.stringify({ gesture_id: gestureId, frames }),
+    }),
+
+  deleteGesture: () => request<void>("/biometrics/gesture", { method: "DELETE" }),
 
   verifyFace: (challengeId: string, image: string) =>
     request<{ message: string }>("/biometrics/verify-face", {

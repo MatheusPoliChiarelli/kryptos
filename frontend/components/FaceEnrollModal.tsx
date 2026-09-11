@@ -17,7 +17,7 @@ type Props = {
 };
 
 export function FaceEnrollModal({ onClose }: Props) {
-  const { videoRef, ready, error: cameraError, capture } = useCamera();
+  const { attach, ready, error: cameraError, capture } = useCamera();
   const [enrolled, setEnrolled] = useState<boolean | null>(null);
   const [shots, setShots] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
@@ -150,7 +150,7 @@ export function FaceEnrollModal({ onClose }: Props) {
 
             <div className="relative overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface)]">
               <video
-                ref={videoRef}
+                ref={attach}
                 playsInline
                 muted
                 className="aspect-[4/3] w-full scale-x-[-1] object-cover"

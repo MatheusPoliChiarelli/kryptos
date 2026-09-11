@@ -1,11 +1,11 @@
 "use client";
 
-import { Lock, Plus, ScanFace, Search, ShieldCheck } from "lucide-react";
+import { Lock, Plus, Search, Shield, ShieldCheck } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 
 import { CredentialForm } from "@/components/CredentialForm";
 import { CredentialPanel } from "@/components/CredentialPanel";
-import { FaceEnrollModal } from "@/components/FaceEnrollModal";
+import { SecurityModal } from "@/components/SecurityModal";
 import { api } from "@/lib/api";
 import type { Credential } from "@/lib/types";
 
@@ -24,7 +24,7 @@ export function VaultView({ onLock }: Props) {
   const [loading, setLoading] = useState(true);
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<Credential | null>(null);
-  const [faceOpen, setFaceOpen] = useState(false);
+  const [securityOpen, setSecurityOpen] = useState(false);
 
   const load = useCallback(async (term: string, category: string) => {
     try {
@@ -64,7 +64,7 @@ export function VaultView({ onLock }: Props) {
         target instanceof HTMLInputElement ||
         target instanceof HTMLTextAreaElement;
 
-      if (typing || selected || formOpen || faceOpen) return;
+      if (typing || selected || formOpen || securityOpen) return;
 
       if (event.key === "+" || event.key === "=") {
         event.preventDefault();
@@ -75,7 +75,7 @@ export function VaultView({ onLock }: Props) {
 
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [selected, formOpen, faceOpen]);
+  }, [selected, formOpen, securityOpen]);
 
   function handleSaved() {
     setFormOpen(false);
@@ -121,11 +121,11 @@ export function VaultView({ onLock }: Props) {
             </button>
 
             <button
-              onClick={() => setFaceOpen(true)}
-              title="Reconhecimento facial"
+              onClick={() => setSecurityOpen(true)}
+              title="Segurança"
               className="rounded-lg p-2 text-[var(--text-faint)] transition-colors hover:bg-[var(--surface-hover)] hover:text-[var(--text)]"
             >
-              <ScanFace size={16} />
+              <Shield size={16} />
             </button>
             <button
               onClick={onLock}
@@ -247,7 +247,12 @@ export function VaultView({ onLock }: Props) {
         />
       )}
 
-      {faceOpen && <FaceEnrollModal onClose={() => setFaceOpen(false)} />}
+      {securityOpen && (
+        <SecurityModal
+          onClose={() => setSecurityOpen(false)}
+          onPasswordChanged={onLock}
+        />
+      )}
     </div>
   );
 }

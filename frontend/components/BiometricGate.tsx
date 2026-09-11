@@ -3,16 +3,21 @@
 import { Check, Hand, Loader2, ScanFace } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import { SuccessSeal } from "@/components/SuccessSeal";
+import { AccessDenied } from "@/components/AccessDenied";
+import { AccessGranted } from "@/components/AccessGranted";
 import { api } from "@/lib/api";
 import { useCamera } from "@/lib/useCamera";
 
 const GESTURE_FRAMES = 20;
 const GESTURE_INTERVAL_MS = 120;
 const FACE_SEAL_MS = 1100;
-const FINAL_SEAL_MS = 1500;
+const FINAL_SEAL_MS = 2500;
+const ERROR_CLEAR_MS = 3200;
+const ABORT_MS = 3200;
+const SHAKE_MS = 700;
+const MAX_ATTEMPTS = 3;
 
-type Step = "face" | "face-ok" | "gesture" | "done";
+type Step = "face" | "face-ok" | "gesture" | "done" | "aborted";
 
 type Props = {
   challengeId: string;
@@ -21,19 +26,46 @@ type Props = {
 };
 
 export function BiometricGate({ challengeId, onComplete, onCancel }: Props) {
-  const { videoRef, ready, error: cameraError, capture } = useCamera();
+  const { attach, ready, error: cameraError, capture } = useCamera();
   const [step, setStep] = useState<Step>("face");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [shakeKey, setShakeKey] = useState(0);
+  const [shaking, setShaking] = useState(false);
   const [capturing, setCapturing] = useState(false);
+  const [attempts, setAttempts] = useState(0);
   const running = useRef(false);
-  const tokenRef = useRef<string | null>(null);
 
-  const fail = useCallback((message: string) => {
-    setError(message);
-    setShakeKey((value) => value + 1);
-  }, []);
+  const abort = useCallback(() => {
+    setStep("aborted");
+    setTimeout(onCancel, ABORT_MS);
+  }, [onCancel]);
+
+  const fail = useCallback(
+    (message: string) => {
+      setShaking(true);
+      setTimeout(() => setShaking(false), SHAKE_MS);
+
+      setAttempts((previous) => {
+        const next = previous + 1;
+
+        if (next >= MAX_ATTEMPTS) {
+          setError("Limite de tentativas atingido");
+          abort();
+        } else {
+          setError(message);
+        }
+
+        return next;
+      });
+    },
+    [abort]
+  );
+
+  useEffect(() => {
+    if (!error || step === "aborted") return;
+    const timer = setTimeout(() => setError(null), ERROR_CLEAR_MS);
+    return () => clearTimeout(timer);
+  }, [error, step]);
 
   const verifyFace = useCallback(async () => {
     if (running.current) return;
@@ -51,6 +83,7 @@ export function BiometricGate({ challengeId, onComplete, onCancel }: Props) {
 
     try {
       await api.verifyFace(challengeId, image);
+      setAttempts(0);
       setStep("face-ok");
       setTimeout(() => setStep("gesture"), FACE_SEAL_MS);
     } catch (err) {
@@ -86,7 +119,6 @@ export function BiometricGate({ challengeId, onComplete, onCancel }: Props) {
       }
 
       const result = await api.verifyGesture(challengeId, frames);
-      tokenRef.current = result.token;
       setStep("done");
       setTimeout(() => onComplete(result.token), FINAL_SEAL_MS);
     } catch (err) {
@@ -114,14 +146,11 @@ export function BiometricGate({ challengeId, onComplete, onCancel }: Props) {
   }, [step, busy, ready, verifyFace, verifyGesture]);
 
   if (step === "done") {
-    return (
-      <main className="k-curtain relative flex min-h-screen items-center justify-center overflow-hidden px-6">
-        <div className="k-grid-bg pointer-events-none absolute inset-0" />
-        <div className="relative">
-          <SuccessSeal label="Cofre destrancado" />
-        </div>
-      </main>
-    );
+    return <AccessGranted />;
+  }
+
+  if (step === "aborted") {
+    return <AccessDenied />;
   }
 
   const isFaceStep = step === "face" || step === "face-ok";
@@ -133,7 +162,10 @@ export function BiometricGate({ challengeId, onComplete, onCancel }: Props) {
       <div className="relative w-full max-w-md">
         <div className="mb-8 text-center">
           <div className="mb-5 flex items-center justify-center gap-3">
-            <StepDot active={step === "face"} done={!isFaceStep || step === "face-ok"} />
+            <StepDot
+              active={step === "face"}
+              done={!isFaceStep || step === "face-ok"}
+            />
             <div className="h-px w-10 bg-[var(--border-strong)]" />
             <StepDot active={step === "gesture"} done={false} />
           </div>
@@ -148,59 +180,101 @@ export function BiometricGate({ challengeId, onComplete, onCancel }: Props) {
           </p>
         </div>
 
-        <div
-          key={shakeKey}
-          className={`relative overflow-hidden rounded-2xl border bg-[var(--surface)] ${
-            error
-              ? "k-shake k-error-glow border-[var(--danger)]"
-              : "border-[var(--border-strong)]"
-          }`}
-        >
-          <video
-            ref={videoRef}
-            playsInline
-            muted
-            className="aspect-[4/3] w-full scale-x-[-1] object-cover"
-          />
+        <div className={shaking ? "k-shake" : undefined}>
+          <div
+            className={`relative overflow-hidden rounded-2xl border bg-[var(--surface)] transition-colors duration-300 ${
+              error ? "border-[var(--danger)]" : "border-[var(--border-strong)]"
+            }`}
+          >
+            <video
+              ref={attach}
+              playsInline
+              muted
+              className="aspect-[4/3] w-full scale-x-[-1] object-cover"
+            />
 
-          {!ready && !cameraError && (
-            <div className="absolute inset-0 flex items-center justify-center bg-[var(--surface)]">
-              <Loader2 size={20} className="animate-spin text-[var(--text-faint)]" />
-            </div>
-          )}
+            {!ready && !cameraError && (
+              <div className="absolute inset-0 flex items-center justify-center bg-[var(--surface)]">
+                <Loader2
+                  size={20}
+                  className="animate-spin text-[var(--text-faint)]"
+                />
+              </div>
+            )}
 
-          {cameraError && (
-            <div className="absolute inset-0 flex items-center justify-center bg-[var(--surface)] px-8 text-center">
-              <p className="text-sm text-[var(--danger)]">{cameraError}</p>
-            </div>
-          )}
+            {cameraError && (
+              <div className="absolute inset-0 flex items-center justify-center bg-[var(--surface)] px-8 text-center">
+                <p className="text-sm text-[var(--danger)]">{cameraError}</p>
+              </div>
+            )}
 
-          {step === "face-ok" && (
-            <div className="k-curtain absolute inset-0 flex items-center justify-center bg-[var(--bg)]/85 backdrop-blur-sm">
-              <SuccessSeal label="Rosto reconhecido" compact />
-            </div>
-          )}
+            {step === "face-ok" && (
+              <div className="k-curtain absolute inset-0 flex flex-col items-center justify-center gap-3 bg-[var(--bg)]/85 backdrop-blur-sm">
+                <svg viewBox="0 0 60 60" width="58" height="58" fill="none">
+                  <circle
+                    className="k-circle-draw"
+                    cx="30"
+                    cy="30"
+                    r="27"
+                    stroke="var(--accent)"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    transform="rotate(-90 30 30)"
+                  />
+                  <path
+                    className="k-check-draw"
+                    d="M19 30.5 L26.5 38 L41 23"
+                    stroke="var(--accent)"
+                    strokeWidth="3"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+                <span className="k-fade-up text-xs text-[var(--text-muted)]">
+                  Rosto reconhecido
+                </span>
+              </div>
+            )}
 
-          {capturing && (
-            <div className="absolute inset-x-0 bottom-0 flex items-center justify-center gap-2 bg-black/60 py-3 backdrop-blur-sm">
-              <Loader2 size={14} className="animate-spin text-[var(--accent)]" />
-              <span className="text-xs text-[var(--text)]">
-                Capturando, mantenha a posição
-              </span>
-            </div>
-          )}
+            {error && (
+              <div className="k-fade-in absolute inset-x-0 bottom-0 flex items-center justify-center gap-2.5 bg-[var(--danger)]/15 py-3 backdrop-blur-sm">
+                <span className="h-1.5 w-1.5 rounded-full bg-[var(--danger)]" />
+                <span className="text-xs text-[var(--danger)]">{error}</span>
+              </div>
+            )}
+
+            {capturing && (
+              <div className="absolute inset-x-0 bottom-0 flex items-center justify-center gap-2 bg-black/60 py-3 backdrop-blur-sm">
+                <Loader2
+                  size={14}
+                  className="animate-spin text-[var(--accent)]"
+                />
+                <span className="text-xs text-[var(--text)]">
+                  Capturando, mantenha a posição
+                </span>
+              </div>
+            )}
+          </div>
         </div>
 
-        {error && (
-          <div className="k-fade-in mt-4 flex items-center justify-center gap-2 rounded-xl border border-[var(--danger)]/40 bg-[var(--danger)]/10 px-4 py-2.5">
-            <span className="h-1.5 w-1.5 rounded-full bg-[var(--danger)]" />
-            <p className="text-sm text-[var(--danger)]">{error}</p>
-          </div>
-        )}
+        <div className="mt-5 flex items-center justify-center gap-1.5">
+          {Array.from({ length: MAX_ATTEMPTS }).map((_, index) => (
+            <span
+              key={index}
+              className={`h-1 rounded-full transition-all duration-300 ${
+                index < MAX_ATTEMPTS - attempts
+                  ? "w-7 bg-[var(--accent)]/70"
+                  : "w-3 bg-[var(--border-strong)]"
+              }`}
+            />
+          ))}
+        </div>
 
-        <div className="mt-6 space-y-2">
+        <div className="mt-5 space-y-2">
           <button
-            onClick={() => void (step === "face" ? verifyFace() : verifyGesture())}
+            onClick={() =>
+              void (step === "face" ? verifyFace() : verifyGesture())
+            }
             disabled={busy || !ready || step === "face-ok"}
             className="flex w-full items-center justify-center gap-2 rounded-xl bg-[var(--accent)] px-4 py-3 text-sm font-medium text-[#1a1408] transition-opacity hover:opacity-90 disabled:opacity-40"
           >
