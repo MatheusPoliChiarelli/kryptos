@@ -30,16 +30,20 @@ class MessageOut(BaseModel):
 
 class CredentialCreate(BaseModel):
     title: str = Field(min_length=1, max_length=120)
-    username: str = Field(min_length=1, max_length=255)
-    password: str = Field(min_length=1, max_length=1024)
+    auth_type: str = Field(default="password", max_length=20)
+    provider: str | None = Field(default=None, max_length=20)
+    username: str | None = Field(default=None, max_length=255)
+    password: str | None = Field(default=None, max_length=1024)
     category: str | None = Field(default=None, max_length=60)
     notes: str | None = Field(default=None, max_length=5000)
 
 
 class CredentialUpdate(BaseModel):
     title: str | None = Field(default=None, min_length=1, max_length=120)
-    username: str | None = Field(default=None, min_length=1, max_length=255)
-    password: str | None = Field(default=None, min_length=1, max_length=1024)
+    auth_type: str | None = Field(default=None, max_length=20)
+    provider: str | None = Field(default=None, max_length=20)
+    username: str | None = Field(default=None, max_length=255)
+    password: str | None = Field(default=None, max_length=1024)
     category: str | None = Field(default=None, max_length=60)
     notes: str | None = Field(default=None, max_length=5000)
 
@@ -50,6 +54,8 @@ class CredentialOut(BaseModel):
     id: int
     title: str
     category: str | None
+    auth_type: str
+    provider: str | None
     has_notes: bool
     created_at: datetime
     updated_at: datetime
@@ -57,10 +63,11 @@ class CredentialOut(BaseModel):
 
 class CredentialSecretOut(BaseModel):
     id: int
-    username: str
-    password: str
+    auth_type: str
+    provider: str | None = None
+    username: str | None = None
+    password: str | None = None
     notes: str | None = None
-
 
 class UnlockPendingOut(BaseModel):
     status: str = "biometrics_required"

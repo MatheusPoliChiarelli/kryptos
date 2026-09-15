@@ -4,6 +4,7 @@ import { Loader2, Pencil, Trash2, X } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 
 import { api } from "@/lib/api";
+import { providerLabel } from "@/lib/types";
 import type { Credential, CredentialSecret } from "@/lib/types";
 import { useScramble } from "@/lib/useScramble";
 
@@ -72,6 +73,8 @@ export function CredentialPanel({
     }
   }
 
+  const isSocial = credential.auth_type === "social";
+
   return (
     <div
       className="k-fade-in fixed inset-0 z-50 flex items-center justify-center bg-black/75 px-6 backdrop-blur-sm"
@@ -128,8 +131,23 @@ export function CredentialPanel({
             </div>
           ) : secret ? (
             <>
-              <Field label="Email ou usuário" value={secret.username} />
-              <Field label="Senha" value={secret.password} mono />
+              {isSocial && (
+                <div className="k-fade-up flex items-center gap-2.5 rounded-xl border border-[var(--accent)]/30 bg-[var(--accent-soft)] px-4 py-3">
+                  <span className="h-1.5 w-1.5 rounded-full bg-[var(--accent)]" />
+                  <span className="text-sm text-[var(--accent)]">
+                    Você entra com {providerLabel(credential.provider)}
+                  </span>
+                </div>
+              )}
+
+              {secret.username && (
+                <Field
+                  label={isSocial ? "Conta usada" : "Email ou usuário"}
+                  value={secret.username}
+                />
+              )}
+
+              {secret.password && <Field label="Senha" value={secret.password} mono />}
 
               {secret.notes && (
                 <div>

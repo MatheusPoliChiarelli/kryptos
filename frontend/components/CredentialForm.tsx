@@ -4,7 +4,8 @@ import { Loader2, X } from "lucide-react";
 import { useState } from "react";
 
 import { api } from "@/lib/api";
-import type { Credential } from "@/lib/types";
+import { PROVIDERS } from "@/lib/types";
+import type { AuthType, Credential } from "@/lib/types";
 
 type Props = {
   editing: Credential | null;
@@ -14,6 +15,12 @@ type Props = {
 
 export function CredentialForm({ editing, onClose, onSaved }: Props) {
   const [title, setTitle] = useState(editing?.title ?? "");
+  const [authType, setAuthType] = useState<AuthType>(
+    editing?.auth_type ?? "password"
+  );
+  const [provider, setProvider] = useState<string | null>(
+    editing?.provider ?? null
+  );
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [category, setCategory] = useState(editing?.category ?? "");
@@ -26,9 +33,21 @@ export function CredentialForm({ editing, onClose, onSaved }: Props) {
       setError("Informe um título");
       return;
     }
-    if (!editing && (!username.trim() || !password)) {
-      setError("Informe email e senha");
+
+    if (authType === "social" && !provider) {
+      setError("Escolha o provedor");
       return;
+    }
+
+    if (!editing) {
+      if (!username.trim()) {
+        setError("Informe o email ou usuário");
+        return;
+      }
+      if (authType === "password" && !password) {
+        setError("Informe a senha");
+        return;
+      }
     }
 
     setBusy(true);
@@ -39,6 +58,8 @@ export function CredentialForm({ editing, onClose, onSaved }: Props) {
         const payload: Record<string, string | null> = {
           title: title.trim(),
           category: category.trim() || null,
+          auth_type: authType,
+          provider: authType === "social" ? provider : null,
         };
         if (username.trim()) payload.username = username.trim();
         if (password) payload.password = password;
@@ -48,8 +69,10 @@ export function CredentialForm({ editing, onClose, onSaved }: Props) {
       } else {
         await api.createCredential({
           title: title.trim(),
+          auth_type: authType,
+          provider: authType === "social" ? provider : null,
           username: username.trim(),
-          password,
+          password: authType === "password" ? password : null,
           category: category.trim() || null,
           notes: notes.trim() || null,
         });
@@ -66,8 +89,8 @@ export function CredentialForm({ editing, onClose, onSaved }: Props) {
     "w-full rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3 text-sm placeholder:text-[var(--text-faint)] transition-colors focus:border-[var(--border-strong)] focus:outline-none";
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-6 backdrop-blur-sm">
-      <div className="w-full max-w-md rounded-2xl border border-[var(--border-strong)] bg-[var(--bg)] p-7">
+    <div className="k-fade-in fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-6 backdrop-blur-sm">
+      <div className="k-scale-in w-full max-w-md rounded-2xl border border-[var(--border-strong)] bg-[var(--bg)] p-7">
         <div className="mb-6 flex items-center justify-between">
           <h2 className="text-lg font-medium tracking-tight">
             {editing ? "Editar credencial" : "Nova credencial"}
@@ -80,11 +103,52 @@ export function CredentialForm({ editing, onClose, onSaved }: Props) {
           </button>
         </div>
 
+        <div className="mb-4 flex gap-1 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-1">
+          <TabButton
+            label="Login e senha"
+            active={authType === "password"}
+            onClick={() => {
+              setAuthType("password");
+              setProvider(null);
+              setError(null);
+            }}
+          />
+          <TabButton
+            label="Entro com"
+            active={authType === "social"}
+            onClick={() => {
+              setAuthType("social");
+              setError(null);
+            }}
+          />
+        </div>
+
+        {authType === "social" && (
+          <div className="mb-4 flex flex-wrap gap-2">
+            {PROVIDERS.map((item) => (
+              <button
+                key={item.id}
+                onClick={() => {
+                  setProvider(item.id);
+                  setError(null);
+                }}
+                className={`rounded-full border px-3.5 py-1.5 text-xs transition-all duration-200 ${
+                  provider === item.id
+                    ? "border-[var(--accent)] bg-[var(--accent-soft)] text-[var(--accent)]"
+                    : "border-[var(--border)] text-[var(--text-muted)] hover:border-[var(--border-strong)] hover:text-[var(--text)]"
+                }`}
+              >
+                {item.label}
+              </button>
+            ))}
+          </div>
+        )}
+
         <div className="space-y-3">
           <input
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            placeholder="Título (Netflix, Gmail...)"
+            placeholder="Título (Netflix, Figma...)"
             autoFocus
             className={inputClass}
           />
@@ -92,19 +156,27 @@ export function CredentialForm({ editing, onClose, onSaved }: Props) {
             value={username}
             onChange={(e) => setUsername(e.target.value)}
             placeholder={
-              editing ? "Novo email (deixe vazio para manter)" : "Email ou usuário"
+              editing
+                ? authType === "social"
+                  ? "Nova conta (deixe vazio para manter)"
+                  : "Novo email (deixe vazio para manter)"
+                : authType === "social"
+                  ? "Qual conta você usa"
+                  : "Email ou usuário"
             }
             className={inputClass}
           />
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder={
-              editing ? "Nova senha (deixe vazio para manter)" : "Senha"
-            }
-            className={inputClass}
-          />
+          {authType === "password" && (
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder={
+                editing ? "Nova senha (deixe vazio para manter)" : "Senha"
+              }
+              className={inputClass}
+            />
+          )}
           <input
             value={category}
             onChange={(e) => setCategory(e.target.value)}
@@ -132,5 +204,28 @@ export function CredentialForm({ editing, onClose, onSaved }: Props) {
         </button>
       </div>
     </div>
+  );
+}
+
+function TabButton({
+  label,
+  active,
+  onClick,
+}: {
+  label: string;
+  active: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={`flex-1 rounded-lg px-3 py-2 text-xs transition-colors ${
+        active
+          ? "bg-[var(--accent-soft)] text-[var(--accent)]"
+          : "text-[var(--text-muted)] hover:text-[var(--text)]"
+      }`}
+    >
+      {label}
+    </button>
   );
 }

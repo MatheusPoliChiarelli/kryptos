@@ -8,6 +8,7 @@ import { CredentialPanel } from "@/components/CredentialPanel";
 import { SecurityModal } from "@/components/SecurityModal";
 import { api } from "@/lib/api";
 import type { Credential } from "@/lib/types";
+import { providerLabel } from "@/lib/types";
 
 const ALL = "__all__";
 
@@ -211,11 +212,18 @@ export function VaultView({ onLock }: Props) {
                   <span className="block truncate text-sm font-medium">
                     {item.title}
                   </span>
-                  {item.category && (
-                    <span className="mt-0.5 block truncate text-xs text-[var(--text-faint)]">
-                      {item.category}
-                    </span>
-                  )}
+                  <span className="mt-0.5 flex items-center gap-2">
+                    {item.auth_type === "social" && (
+                      <span className="shrink-0 rounded bg-[var(--accent-soft)] px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-[var(--accent)]">
+                        {providerLabel(item.provider)}
+                      </span>
+                    )}
+                    {item.category && (
+                      <span className="truncate text-xs text-[var(--text-faint)]">
+                        {item.category}
+                      </span>
+                    )}
+                  </span>
                 </span>
               </button>
             ))}

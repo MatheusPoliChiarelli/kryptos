@@ -34,11 +34,20 @@ class Credential(Base):
     title: Mapped[str] = mapped_column(String(120), nullable=False, index=True)
     category: Mapped[str | None] = mapped_column(String(60), nullable=True, index=True)
 
-    username_nonce: Mapped[bytes] = mapped_column(LargeBinary, nullable=False)
-    username_ciphertext: Mapped[bytes] = mapped_column(LargeBinary, nullable=False)
+    auth_type: Mapped[str] = mapped_column(
+        String(20), nullable=False, server_default="password", index=True
+    )
+    provider: Mapped[str | None] = mapped_column(String(20), nullable=True)
 
-    password_nonce: Mapped[bytes] = mapped_column(LargeBinary, nullable=False)
-    password_ciphertext: Mapped[bytes] = mapped_column(LargeBinary, nullable=False)
+    username_nonce: Mapped[bytes | None] = mapped_column(LargeBinary, nullable=True)
+    username_ciphertext: Mapped[bytes | None] = mapped_column(
+        LargeBinary, nullable=True
+    )
+
+    password_nonce: Mapped[bytes | None] = mapped_column(LargeBinary, nullable=True)
+    password_ciphertext: Mapped[bytes | None] = mapped_column(
+        LargeBinary, nullable=True
+    )
 
     notes_nonce: Mapped[bytes | None] = mapped_column(LargeBinary, nullable=True)
     notes_ciphertext: Mapped[bytes | None] = mapped_column(LargeBinary, nullable=True)

@@ -9,10 +9,14 @@ export type UnlockResponse = {
   expires_at: string;
 };
 
+export type AuthType = "password" | "social";
+
 export type Credential = {
   id: number;
   title: string;
   category: string | null;
+  auth_type: AuthType;
+  provider: string | null;
   has_notes: boolean;
   created_at: string;
   updated_at: string;
@@ -20,19 +24,34 @@ export type Credential = {
 
 export type CredentialSecret = {
   id: number;
-  username: string;
-  password: string;
+  auth_type: AuthType;
+  provider: string | null;
+  username: string | null;
+  password: string | null;
   notes: string | null;
 };
 
 export type CredentialInput = {
   title: string;
-  username: string;
-  password: string;
+  auth_type: AuthType;
+  provider?: string | null;
+  username?: string | null;
+  password?: string | null;
   category?: string | null;
   notes?: string | null;
 };
 
+export const PROVIDERS = [
+  { id: "google", label: "Google" },
+  { id: "github", label: "GitHub" },
+  { id: "apple", label: "Apple" },
+  { id: "microsoft", label: "Microsoft" },
+  { id: "facebook", label: "Facebook" },
+];
+
+export function providerLabel(id: string | null): string {
+  return PROVIDERS.find((item) => item.id === id)?.label ?? "Login social";
+}
 
 export type PendingUnlock = {
   status: "biometrics_required";

@@ -17,6 +17,9 @@ from app.schemas import (
 
 router = APIRouter(prefix="/credentials", tags=["credentials"])
 
+AUTH_TYPES = ("password", "social")
+PROVIDERS = ("google", "github", "apple", "microsoft", "facebook")
+
 
 def get_or_404(db: Session, credential_id: int) -> Credential:
     credential = db.get(Credential, credential_id)
@@ -26,6 +29,20 @@ def get_or_404(db: Session, credential_id: int) -> Credential:
             detail="Credencial não encontrada",
         )
     return credential
+
+
+def validate_auth(auth_type: str, provider: str | None) -> None:
+    if auth_type not in AUTH_TYPES:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Tipo de acesso desconhecido",
+        )
+
+    if auth_type == "social" and provider not in PROVIDERS:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Provedor desconhecido",
+        )
 
 
 @router.get("", response_model=list[CredentialOut])
@@ -64,8 +81,26 @@ def create_credential(
     key: VaultKey,
     db: Session = Depends(get_db),
 ) -> Credential:
+    validate_auth(payload.auth_type, payload.provider)
+
+    if payload.auth_type == "password" and not payload.password:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Informe a senha",
+        )
+
+    if not payload.username:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Informe o email ou usuário",
+        )
+
     username_nonce, username_ciphertext = encrypt(key, payload.username)
-    password_nonce, password_ciphertext = encrypt(key, payload.password)
+
+    password_nonce = None
+    password_ciphertext = None
+    if payload.auth_type == "password" and payload.password:
+        password_nonce, password_ciphertext = encrypt(key, payload.password)
 
     notes_nonce = None
     notes_ciphertext = None
@@ -75,6 +110,8 @@ def create_credential(
     credential = Credential(
         title=payload.title,
         category=payload.category,
+        auth_type=payload.auth_type,
+        provider=payload.provider if payload.auth_type == "social" else None,
         username_nonce=username_nonce,
         username_ciphertext=username_ciphertext,
         password_nonce=password_nonce,
@@ -106,8 +143,17 @@ def reveal_credential(
 ) -> CredentialSecretOut:
     credential = get_or_404(db, credential_id)
 
-    username = decrypt(key, credential.username_nonce, credential.username_ciphertext)
-    password = decrypt(key, credential.password_nonce, credential.password_ciphertext)
+    username = None
+    if credential.username_nonce and credential.username_ciphertext:
+        username = decrypt(
+            key, credential.username_nonce, credential.username_ciphertext
+        )
+
+    password = None
+    if credential.password_nonce and credential.password_ciphertext:
+        password = decrypt(
+            key, credential.password_nonce, credential.password_ciphertext
+        )
 
     notes = None
     if credential.notes_nonce and credential.notes_ciphertext:
@@ -115,6 +161,8 @@ def reveal_credential(
 
     return CredentialSecretOut(
         id=credential.id,
+        auth_type=credential.auth_type,
+        provider=credential.provider,
         username=username,
         password=password,
         notes=notes,
@@ -130,6 +178,10 @@ def update_credential(
 ) -> Credential:
     credential = get_or_404(db, credential_id)
     data = payload.model_dump(exclude_unset=True)
+
+    auth_type = data.get("auth_type", credential.auth_type)
+    provider = data.get("provider", credential.provider)
+    validate_auth(auth_type, provider)
 
     if data.get("username"):
         nonce, ciphertext = encrypt(key, data["username"])
@@ -153,6 +205,15 @@ def update_credential(
     for field in ("title", "category"):
         if field in data:
             setattr(credential, field, data[field])
+
+    credential.auth_type = auth_type
+
+    if auth_type == "social":
+        credential.provider = provider
+        credential.password_nonce = None
+        credential.password_ciphertext = None
+    else:
+        credential.provider = None
 
     db.commit()
     db.refresh(credential)
